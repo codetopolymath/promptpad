@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromptPad — AI Prompt Engineering Notepad</title>
+  <meta name="description" content="Structure your AI prompts with frameworks, techniques, and smart snippets. No signup. No backend. Works everywhere.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+  <!-- Mobile sidebar overlay -->
+  <div id="mob-overlay" class="mob-overlay" onclick="closeMobileSb()"></div>
+
+  <!-- Header — built by JS -->
+  <header class="hdr" id="hdr"></header>
+
+  <!-- Sidebar — built by JS -->
+  <aside class="sb" id="sb"></aside>
+
+  <!-- Panels -->
+  <div class="shell">
+    <!-- Write -->
+    <main class="panel active" id="p-write">
+      <div class="pg-ttl">
+        <h1>Structure your thinking.</h1>
+        <p>Pick a framework, fill in the sections, click <strong style="color:var(--acc3)">ⓘ</strong> to learn. Open <strong style="color:var(--acc)">Guide</strong> for frameworks and techniques. Auto-saved to your browser.</p>
+      </div>
+      <div id="fw-banner"></div>
+      <div id="cards"></div>
+    </main>
+
+    <!-- Preview -->
+    <div class="panel" id="p-preview"></div>
+
+    <!-- Assemble -->
+    <div class="panel" id="p-assemble">
+      <div class="as-hdr">
+        <span class="as-ttl">Assembled Prompt</span>
+        <button class="btn primary" onclick="copyFull()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy All
+        </button>
+      </div>
+      <div class="as-body" id="as-out"></div>
+      <div class="as-meta">
+        <span><strong id="as-w">0</strong> words</span>
+        <span><strong id="as-c">0</strong> chars</span>
+        <span><strong id="as-t">0</strong> est. tokens</span>
+      </div>
+    </div>
+
+    <!-- Guide -->
+    <div class="panel" id="p-guide"></div>
+  </div>
+
+  <!-- Mobile bottom tabs — built by JS -->
+  <div class="mob-tabs" id="mob-tabs"></div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+    <span id="toast-msg"></span>
+  </div>
+
+  <!-- Hidden file input for Load -->
+  <input type="file" id="file-inp" accept=".md,.txt" style="display:none">
+
+  <!-- marked.js for Preview rendering (must load before app.js module) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+
+  <!-- App entry point -->
+  <script type="module" src="js/app.js"></script>
+
+</body>
+</html>
