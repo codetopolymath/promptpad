@@ -411,7 +411,6 @@ function buildHeader() {
     <a class="logo" href="#" onclick="return false">
       <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
       PromptPad
-      <span class="ver">v3</span>
     </a>
     <div class="fw-wrap">
       <span class="fw-lbl">Framework</span>
@@ -430,6 +429,10 @@ function buildHeader() {
     </div>
     <div class="hdr-acts">
       <button class="btn icon-only" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark theme"></button>
+      <a class="btn" href="notes.html" title="Open markdown notepad">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Notes
+      </a>
       <button class="btn" onclick="shareURL()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         Share
@@ -518,14 +521,13 @@ function buildFwBanner() {
   const el = document.getElementById('fw-banner');
   if(!el) return;
   if(ST.fw==='custom'){ el.innerHTML=''; return; }
-  const letters = fw.letters.map(l=>`<span class="fw-letter" style="color:${l.c};border-color:${l.c}33;background:${l.c}11">${escH(l.l)}</span>`).join('');
   el.innerHTML = `
     <div class="fw-banner">
       <div class="fw-banner-icon">${fw.icon}</div>
       <div>
         <div class="fw-banner-name">${escH(fw.name)}</div>
         <div class="fw-banner-desc">${escH(fw.desc)}</div>
-        <div class="fw-banner-letters">${letters}</div>
+        <div class="fw-banner-when">${escH(fw.when)}</div>
       </div>
     </div>`;
 }
@@ -586,7 +588,6 @@ function cardHTML(s) {
       </div>
     </div>
     <div class="ew">
-      <div class="wm${val?' gone':''}" id="wm-${s.idx}">${escH(s.wm)}</div>
       <textarea class="ta" id="ta-${s.idx}"
         placeholder="${escAttr(s.ph)}" rows="5"
         data-idx="${s.idx}" data-secid="${escAttr(s.secId)}" data-baseid="${escAttr(s.baseId)}"
@@ -752,7 +753,6 @@ function onInp(idx, el) {
   setVal(sec, el.value);
   el.style.height='auto';
   el.style.height=Math.max(100,el.scrollHeight)+'px';
-  document.getElementById('wm-'+idx)?.classList.toggle('gone', !!el.value.trim());
   document.getElementById('cc-'+idx).textContent = el.value.length+' chars';
   const nav = document.getElementById('nav-'+idx);
   if(nav) nav.classList.toggle('has-content', !!el.value.trim());
@@ -882,12 +882,14 @@ function filterTech(cat) {
 // ════════════════════════════════════════════════
 
 function changeFw(k) {
+  const prev = ST.fw;
   ST.fw = k;
   const sel = document.getElementById('fw-sel');
   if(sel) sel.value = k;
   saveST();
   buildSb(); buildFwBanner(); buildCards(); buildHeader();
   if(ST.mode==='guide') buildGuide();
+  if(prev !== k) toast(`Switched to ${FW[k].name} — your content is preserved`);
 }
 
 // ════════════════════════════════════════════════
@@ -1048,6 +1050,14 @@ document.addEventListener('keydown', e=>{
   buildFwBanner();
   buildCards();
   buildMobTabs();
+
+  // Header auto-hide on scroll
+  let _sy = 0;
+  window.addEventListener('scroll', () => {
+    const sy = window.scrollY;
+    document.getElementById('hdr').classList.toggle('hdr-up', sy > 80 && sy > _sy);
+    _sy = sy;
+  }, { passive: true });
 
   ['write','preview','assemble','guide'].forEach(x=>{
     document.getElementById('p-'+x).classList.toggle('active', x===ST.mode);
