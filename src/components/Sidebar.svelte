@@ -11,13 +11,24 @@
   // rail mid-click) and don't work for touch or keyboard users at all.
   let isExpanded = false;
 
+  // The sidebar is `position: fixed` and overlays content rather than
+  // pushing it — harmless while expand was hover-only (moving toward the
+  // content collapsed it first), but pinning it open means that overlay
+  // would permanently cover the left edge of the Write panel (including
+  // part of the textarea) unless the panel reflows to make room.
+  function syncPanelReflow(expanded) {
+    document.documentElement.classList.toggle('sidebar-pinned', expanded);
+  }
+
   onMount(() => {
     isExpanded = localStorage.getItem(SIDEBAR_PIN_KEY) === '1';
+    syncPanelReflow(isExpanded);
   });
 
   function toggleExpanded() {
     isExpanded = !isExpanded;
     localStorage.setItem(SIDEBAR_PIN_KEY, isExpanded ? '1' : '0');
+    syncPanelReflow(isExpanded);
   }
 
   function scrollToSection(sectionIndex) {

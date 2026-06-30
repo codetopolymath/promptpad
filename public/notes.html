@@ -180,6 +180,34 @@
     [data-theme="light"] .md-inline-code { background: rgba(28,23,17,.06); }
     .md-link { color: var(--acc); text-decoration: underline; }
 
+    /* ── TOOLBAR ── sticky formatting bar. Selecting text and clicking a
+       button transforms the selection into that markdown format —
+       discoverable formatting that doesn't require knowing the syntax. */
+    .toolbar {
+      position: sticky; top: var(--hdr-h); z-index: 5;
+      display: flex; justify-content: center;
+      background: rgba(13,17,23,.85);
+      backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+    }
+    [data-theme="light"] .toolbar { background: rgba(250,246,238,.85); }
+    .toolbar-inner {
+      display: flex; align-items: center; gap: 2px; flex-wrap: wrap;
+      width: 100%; max-width: 720px; padding: 6px 24px;
+    }
+    .tb-divider { width: 1px; height: 18px; background: var(--border); margin: 0 6px; flex-shrink: 0; }
+    .tb-btn {
+      min-width: 28px; height: 26px; padding: 0 7px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid transparent; border-radius: 6px;
+      background: transparent; color: var(--sub);
+      font-family: 'Public Sans', sans-serif; font-size: 12.5px; font-weight: 500;
+      cursor: pointer; transition: all .12s ease; flex-shrink: 0;
+    }
+    .tb-btn:hover { background: var(--card); color: var(--text); border-color: var(--border); }
+    .tb-btn.is-active { background: rgba(244,164,64,.16); color: var(--acc); border-color: rgba(244,164,64,.3); }
+    .tb-btn b, .tb-btn i, .tb-btn s { font-family: inherit; }
+
     /* ── ADD BLOCK ── always-visible affordance, not hover-discovered */
     .add-block-row {
       display: flex; align-items: center; gap: 8px;
@@ -206,12 +234,28 @@
     <span style="color:var(--border);font-size:14px">|</span>
     <span class="hdr-title">Notes</span>
     <div class="sp"></div>
-    <span class="hdr-hint">Just start typing — formatting appears live · Enter for a new block</span>
+    <span class="hdr-hint">Type, or select text and use the toolbar above · Enter for a new block</span>
     <span style="color:var(--border);font-size:14px;margin:0 4px">·</span>
     <span class="hdr-meta" id="note-meta">0 words</span>
     <span class="save-indicator" id="save-indicator">saved</span>
     <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme"></button>
   </header>
+
+  <div class="toolbar">
+    <div class="toolbar-inner" id="toolbar">
+      <button class="tb-btn" data-cmd="bold" title="Bold (Ctrl/Cmd+B)"><b>B</b></button>
+      <button class="tb-btn" data-cmd="italic" title="Italic (Ctrl/Cmd+I)"><i>I</i></button>
+      <button class="tb-btn" data-cmd="strike" title="Strikethrough"><s>S</s></button>
+      <button class="tb-btn" data-cmd="code" title="Inline code">{ }</button>
+      <button class="tb-btn" data-cmd="link" title="Link">Link</button>
+      <span class="tb-divider"></span>
+      <button class="tb-btn" data-cmd="h1" title="Heading 1">H1</button>
+      <button class="tb-btn" data-cmd="h2" title="Heading 2">H2</button>
+      <button class="tb-btn" data-cmd="h3" title="Heading 3">H3</button>
+      <button class="tb-btn" data-cmd="quote" title="Quote">"</button>
+      <button class="tb-btn" data-cmd="list" title="Bulleted list">•</button>
+    </div>
+  </div>
 
   <div class="scroll-area">
     <div class="editor" id="editor"></div>
@@ -339,25 +383,30 @@
       return pre.toString().length;
     }
 
-    function setCaretOffset(block, offset) {
+    // Locates the text node + inner offset for a character offset within a
+    // block. Returns null past the end (caller falls back to block end).
+    function locateOffset(block, offset) {
       const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, null);
       let node, count = 0;
       while ((node = walker.nextNode())) {
         const len = node.textContent.length;
-        if (count + len >= offset) {
-          const range = document.createRange();
-          range.setStart(node, Math.max(0, offset - count));
-          range.collapse(true);
-          const sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(range);
-          return;
-        }
+        if (count + len >= offset) return { node, inner: Math.max(0, offset - count) };
         count += len;
       }
+      return null;
+    }
+
+    // Sets the selection to a character range within a block (start===end
+    // for a plain caret). Used both for caret restoration after a re-render
+    // and for re-selecting text the toolbar just transformed.
+    function setSelectionOffsets(block, start, end = start) {
       const range = document.createRange();
-      range.selectNodeContents(block);
-      range.collapse(false);
+      const startLoc = locateOffset(block, start);
+      const endLoc = locateOffset(block, end);
+      if (startLoc) range.setStart(startLoc.node, startLoc.inner);
+      else range.selectNodeContents(block), range.collapse(false);
+      if (endLoc) range.setEnd(endLoc.node, endLoc.inner);
+      else range.collapse(true);
       const sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
@@ -365,8 +414,150 @@
 
     function focusBlock(block, offset) {
       block.focus();
-      setCaretOffset(block, offset);
+      setSelectionOffsets(block, offset);
     }
+
+    // ── Toolbar — reads the live selection (valid because toolbar buttons
+    // use mousedown+preventDefault, so clicking one never steals focus or
+    // collapses the selection inside the block). ──
+    function getActiveSelection() {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return null;
+      const range = sel.getRangeAt(0);
+      const closestBlock = node => (node.nodeType === 1 ? node : node.parentElement)?.closest('.block');
+      const startBlock = closestBlock(range.startContainer);
+      const endBlock = closestBlock(range.endContainer);
+      if (!startBlock || startBlock !== endBlock) return null;
+
+      const startRange = range.cloneRange();
+      startRange.selectNodeContents(startBlock);
+      startRange.setEnd(range.startContainer, range.startOffset);
+      const endRange = range.cloneRange();
+      endRange.selectNodeContents(startBlock);
+      endRange.setEnd(range.endContainer, range.endOffset);
+
+      const a = startRange.toString().length;
+      const b = endRange.toString().length;
+      return { block: startBlock, start: Math.min(a, b), end: Math.max(a, b) };
+    }
+
+    const WRAP_MARKERS = { bold: '**', italic: '*', strike: '~~', code: '`' };
+    const LINE_PREFIX = { h1: '# ', h2: '## ', h3: '### ', quote: '> ', list: '- ' };
+
+    function markerKind(marker) {
+      const m = marker.trim();
+      if (/^#{1,3}$/.test(m)) return 'h' + m.length;
+      if (m === '>') return 'quote';
+      if (/^[-*+]$/.test(m)) return 'list';
+      return null;
+    }
+
+    function toggleWrap({ block, start, end }, marker) {
+      const raw = block.textContent;
+      const mlen = marker.length;
+      const before = raw.slice(Math.max(0, start - mlen), start);
+      const after = raw.slice(end, end + mlen);
+
+      let newRaw, newStart, newEnd;
+      if (before === marker && after === marker) {
+        newRaw = raw.slice(0, start - mlen) + raw.slice(start, end) + raw.slice(end + mlen);
+        newStart = start - mlen;
+        newEnd = end - mlen;
+      } else if (start === end) {
+        newRaw = raw.slice(0, start) + marker + marker + raw.slice(start);
+        newStart = newEnd = start + mlen;
+      } else {
+        newRaw = raw.slice(0, start) + marker + raw.slice(start, end) + marker + raw.slice(end);
+        newStart = start + mlen;
+        newEnd = end + mlen;
+      }
+      renderBlock(block, newRaw);
+      focusBlock(block, newStart);
+      setSelectionOffsets(block, newStart, newEnd);
+      saveAll();
+      updateMeta();
+    }
+
+    function toggleLink({ block, start, end }) {
+      if (start === end) { flashHint('Select some text first, then click Link'); return; }
+      const url = prompt('Link URL:', 'https://');
+      if (!url) return;
+      const raw = block.textContent;
+      const insertion = `[${raw.slice(start, end)}](${url})`;
+      renderBlock(block, raw.slice(0, start) + insertion + raw.slice(end));
+      focusBlock(block, start + insertion.length);
+      saveAll();
+      updateMeta();
+    }
+
+    function toggleLinePrefix({ block, start }, cmd) {
+      const marker = LINE_PREFIX[cmd];
+      const raw = block.textContent;
+      const firstLineEnd = raw.indexOf('\n');
+      const firstLine = firstLineEnd === -1 ? raw : raw.slice(0, firstLineEnd);
+      const rest = firstLineEnd === -1 ? '' : raw.slice(firstLineEnd);
+
+      const existing = firstLine.match(/^(#{1,3}[ \t]+|>[ \t]+|[-*+][ \t]+)/);
+      const existingMarker = existing ? existing[0] : '';
+      const isSameKind = markerKind(existingMarker) === cmd;
+
+      const newFirstLine = isSameKind
+        ? firstLine.slice(existingMarker.length)
+        : marker + firstLine.slice(existingMarker.length);
+      const caretShift = newFirstLine.length - firstLine.length;
+
+      renderBlock(block, newFirstLine + rest);
+      focusBlock(block, Math.max(0, start + caretShift));
+      saveAll();
+      updateMeta();
+    }
+
+    function applyFormat(cmd) {
+      const selInfo = getActiveSelection();
+      if (!selInfo) { flashHint('Click into a note first'); return; }
+      if (cmd in WRAP_MARKERS) return toggleWrap(selInfo, WRAP_MARKERS[cmd]);
+      if (cmd === 'link') return toggleLink(selInfo);
+      if (cmd in LINE_PREFIX) return toggleLinePrefix(selInfo, cmd);
+    }
+
+    function flashHint(message) {
+      const hint = document.querySelector('.hdr-hint');
+      const original = hint.textContent;
+      hint.textContent = message;
+      hint.style.color = 'var(--acc)';
+      setTimeout(() => { hint.textContent = original; hint.style.color = ''; }, 1800);
+    }
+
+    function updateToolbarState() {
+      const buttons = document.querySelectorAll('#toolbar .tb-btn');
+      const selInfo = getActiveSelection();
+      if (!selInfo) { buttons.forEach(b => b.classList.remove('is-active')); return; }
+
+      const sel = window.getSelection();
+      const anchor = sel.anchorNode && (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement);
+      const inlineActive = {
+        bold: !!anchor?.closest('strong'),
+        italic: !!anchor?.closest('em'),
+        strike: !!anchor?.closest('del'),
+        code: !!anchor?.closest('.md-inline-code'),
+      };
+      const blockKind = { 'md-h1': 'h1', 'md-h2': 'h2', 'md-h3': 'h3', 'md-quote': 'quote', 'md-li-ul': 'list' };
+      const activeBlockCmd = Object.entries(blockKind).find(([cls]) => selInfo.block.classList.contains(cls))?.[1];
+
+      buttons.forEach(btn => {
+        const cmd = btn.dataset.cmd;
+        btn.classList.toggle('is-active', inlineActive[cmd] === true || cmd === activeBlockCmd);
+      });
+    }
+
+    document.querySelectorAll('#toolbar .tb-btn').forEach(btn => {
+      btn.addEventListener('mousedown', e => {
+        e.preventDefault(); // keep the contenteditable block focused; selection survives
+        applyFormat(btn.dataset.cmd);
+        updateToolbarState();
+      });
+    });
+    document.addEventListener('selectionchange', updateToolbarState);
 
     // ── Block lifecycle ──
     function renderBlock(block, raw) {
@@ -382,7 +573,7 @@
       block.contentEditable = 'true';
       block.setAttribute('role', 'textbox');
       block.setAttribute('aria-multiline', 'true');
-      block.dataset.placeholder = 'Write something — # heading, **bold**, *italic*, `code`, > quote, - list';
+      block.dataset.placeholder = 'Write something — select text and use the toolbar above to format it';
       renderBlock(block, raw);
       wireBlock(block);
       return block;
@@ -400,7 +591,7 @@
         if (isComposing) return;
         const offset = getCaretOffset(block);
         renderBlock(block, block.textContent);
-        setCaretOffset(block, offset);
+        setSelectionOffsets(block, offset);
         saveAll();
         updateMeta();
       });
@@ -409,6 +600,10 @@
       block.addEventListener('blur', () => block.classList.remove('is-focused'));
 
       block.addEventListener('keydown', e => {
+        const modKey = e.metaKey || e.ctrlKey;
+        if (modKey && e.key.toLowerCase() === 'b') { e.preventDefault(); applyFormat('bold'); return; }
+        if (modKey && e.key.toLowerCase() === 'i') { e.preventDefault(); applyFormat('italic'); return; }
+
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           const offset = getCaretOffset(block);
@@ -427,7 +622,7 @@
           const offset = getCaretOffset(block);
           const raw = block.textContent;
           renderBlock(block, raw.slice(0, offset) + '\n' + raw.slice(offset));
-          setCaretOffset(block, offset + 1);
+          setSelectionOffsets(block, offset + 1);
           saveAll();
           updateMeta();
           return;
