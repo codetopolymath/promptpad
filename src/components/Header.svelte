@@ -62,7 +62,7 @@
       Object.entries(parsedValues).forEach(([sectionId, value]) => {
         appStore.setSectionValue(sectionId, value);
       });
-      showToast('Loaded!');
+      showToast('Loaded from file');
     };
     reader.readAsText(file);
     event.target.value = '';
@@ -71,7 +71,7 @@
   function handleClear() {
     if (!confirm('Clear all section content? This cannot be undone.')) return;
     appStore.clearAllSections();
-    showToast('All cleared');
+    showToast('All sections cleared');
     isOverflowMenuOpen = false;
   }
 </script>

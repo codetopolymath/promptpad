@@ -116,119 +116,123 @@
     class="section-card"
     class:is-focused={isFocused}
     class:is-flashing={isFlashing}
-    style="--section-color:{sectionColor.hex};--section-r:{sectionColor.r};--section-g:{sectionColor.g};--section-b:{sectionColor.b}"
+    style="--section-color:{sectionColor.hex};--section-bg:{sectionColor.background}"
   >
-    <div class="card-accent-stripe" style="background:{sectionColor.hex}"></div>
+    <div class="card-index-tab">
+      <span class="card-index-letter">{section.shortLabel.charAt(0).toUpperCase()}</span>
+    </div>
 
-    <div class="card-header">
-      <span class="card-number">{String(section.index + 1).padStart(2, '0')}</span>
-      <span
-        class="card-label"
-        style="color:{sectionColor.hex};background:{sectionColor.background};border-color:{sectionColor.hex}33"
-      >{section.shortLabel}</span>
-      <span class="card-title">{section.fullTitle}</span>
+    <div class="card-body">
+      <div class="card-header">
+        <span class="card-number">{String(section.index + 1).padStart(2, '0')}</span>
+        <span
+          class="card-label"
+          style="color:{sectionColor.hex};background:{sectionColor.background};border-color:{sectionColor.hex}33"
+        >{section.shortLabel}</span>
+        <span class="card-title">{section.fullTitle}</span>
 
-      <div class="card-actions">
-        <!-- Info / tip toggle -->
-        <button
-          class="card-icon-button is-info"
-          title="Learn about this section"
-          on:click={() => showTip = !showTip}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="16" x2="12" y2="12"/>
-            <line x1="12" y1="8" x2="12.01" y2="8"/>
-          </svg>
-        </button>
+        <div class="card-actions">
+          <!-- Info / tip toggle -->
+          <button
+            class="card-icon-button is-info"
+            title="Learn about this section"
+            on:click={() => showTip = !showTip}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+          </button>
 
-        <!-- Snippet picker -->
-        <button
-          class="card-icon-button is-snip"
-          title="Snippets"
-          on:click={toggleSnippetDropdown}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
-          </svg>
-        </button>
+          <!-- Snippet picker -->
+          <button
+            class="card-icon-button is-snip"
+            title="Snippets"
+            on:click={toggleSnippetDropdown}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+            </svg>
+          </button>
 
-        <!-- Copy section -->
-        <button
-          class="card-icon-button is-copy"
-          title="Copy section"
-          on:click={copySection}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
-            <rect x="9" y="9" width="13" height="13" rx="2"/>
-            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-          </svg>
-        </button>
+          <!-- Copy section -->
+          <button
+            class="card-icon-button is-copy"
+            title="Copy section"
+            on:click={copySection}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+              <rect x="9" y="9" width="13" height="13" rx="2"/>
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+          </button>
 
-        <!-- Toggle off (disable) -->
-        <button
-          class="toggle-switch is-on"
-          title="Disable this section"
-          on:click={() => appStore.toggleSection(section.id)}
-        >
-          <span class="toggle-thumb"></span>
-        </button>
+          <!-- Toggle off (disable) -->
+          <button
+            class="toggle-switch is-on"
+            title="Disable this section"
+            on:click={() => appStore.toggleSection(section.id)}
+          >
+            <span class="toggle-thumb"></span>
+          </button>
 
-        <!-- Snippet dropdown -->
-        {#if showSnippets}
-          <div class="snippet-dropdown" on:click|stopPropagation>
-            <div class="snippet-dropdown-header">
-              <span class="snippet-dropdown-title">{section.fullTitle}</span>
-              <span style="font-size:11px;color:var(--color-text-muted)">{allSnippets.length} snippets</span>
+          <!-- Snippet dropdown -->
+          {#if showSnippets}
+            <div class="snippet-dropdown" on:click|stopPropagation>
+              <div class="snippet-dropdown-header">
+                <span class="snippet-dropdown-title">{section.fullTitle}</span>
+                <span style="font-size:11px;color:var(--color-text-muted)">{allSnippets.length} snippets</span>
+              </div>
+
+              {#if allSnippets.length}
+                {#each allSnippets as snippetText}
+                  <button class="snippet-item" on:click={() => applySnippet(snippetText)}>
+                    <span class="snippet-item-text">{snippetText}</span>
+                    <span class="snippet-item-use-badge">Use</span>
+                  </button>
+                {/each}
+              {:else}
+                <p style="font-size:12px;color:var(--color-text-muted);padding:4px 0">No snippets yet.</p>
+              {/if}
+
+              <button class="snippet-save-button" on:click={saveCurrentAsSnippet}>
+                + Save current text as snippet
+              </button>
             </div>
-
-            {#if allSnippets.length}
-              {#each allSnippets as snippetText}
-                <button class="snippet-item" on:click={() => applySnippet(snippetText)}>
-                  <span class="snippet-item-text">{snippetText}</span>
-                  <span class="snippet-item-use-badge">Use</span>
-                </button>
-              {/each}
-            {:else}
-              <p style="font-size:12px;color:var(--color-text-muted);padding:4px 0">No snippets yet.</p>
-            {/if}
-
-            <button class="snippet-save-button" on:click={saveCurrentAsSnippet}>
-              + Save current text as snippet
-            </button>
-          </div>
-        {/if}
+          {/if}
+        </div>
       </div>
-    </div>
 
-    <!-- Textarea -->
-    <div class="card-editor">
-      <textarea
-        id="textarea-{section.index}"
-        bind:this={textareaElement}
-        class="section-textarea"
-        placeholder={section.placeholder}
-        bind:value={inputValue}
-        on:input={handleInput}
-        on:focus={handleFocus}
-        on:blur={handleBlur}
-        rows="5"
-        data-nav-id={section.index}
-      ></textarea>
-    </div>
-
-    <div class="char-count">{inputValue.length} chars</div>
-
-    <!-- Tip panel (toggled by ⓘ button) -->
-    {#if showTip}
-      <div class="tip-panel">
-        <div class="tip-heading is-what">📌 What is this?</div>
-        <p>{section.tip.whatItIs}</p>
-        <div class="tip-heading is-why" style="margin-top:10px">🧠 Why it matters</div>
-        <p>{section.tip.whyItMatters}</p>
-        <div class="tip-heading is-example" style="margin-top:10px">✍️ Example</div>
-        <div class="tip-example">{section.tip.example}</div>
+      <!-- Textarea -->
+      <div class="card-editor">
+        <textarea
+          id="textarea-{section.index}"
+          bind:this={textareaElement}
+          class="section-textarea"
+          placeholder={section.placeholder}
+          bind:value={inputValue}
+          on:input={handleInput}
+          on:focus={handleFocus}
+          on:blur={handleBlur}
+          rows="5"
+          data-nav-id={section.index}
+        ></textarea>
       </div>
-    {/if}
+
+      <div class="char-count">{inputValue.length} chars</div>
+
+      <!-- Tip panel (toggled by ⓘ button) -->
+      {#if showTip}
+        <div class="tip-panel">
+          <div class="tip-heading is-what">📌 What is this?</div>
+          <p>{section.tip.whatItIs}</p>
+          <div class="tip-heading is-why" style="margin-top:10px">🧠 Why it matters</div>
+          <p>{section.tip.whyItMatters}</p>
+          <div class="tip-heading is-example" style="margin-top:10px">✍️ Example</div>
+          <div class="tip-example">{section.tip.example}</div>
+        </div>
+      {/if}
+    </div>
   </div>
 {/if}

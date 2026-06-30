@@ -1,16 +1,19 @@
 // Per-section color palette. hex/r/g/b are applied as CSS custom properties
 // on each card so the glow, tag, and stripe all derive from one source color.
+// A "pencil set" of 10 muted, technical hues — evenly spaced around the
+// wheel rather than a saturated rainbow, so they sit quietly against the
+// ink/vellum backgrounds instead of reading as decoration.
 export const SECTION_COLORS = {
-  role:     { hex: '#9B8BFA', r: 155, g: 139, b: 250, background: 'rgba(155,139,250,.12)' },
-  ctx:      { hex: '#2DD4A0', r: 45,  g: 212, b: 160, background: 'rgba(45,212,160,.1)'  },
-  task:     { hex: '#E8B84B', r: 232, g: 184, b: 75,  background: 'rgba(232,184,75,.1)'  },
-  instr:    { hex: '#7EB3FC', r: 126, g: 179, b: 252, background: 'rgba(126,179,252,.1)' },
-  ex:       { hex: '#F87171', r: 248, g: 113, b: 113, background: 'rgba(248,113,113,.1)' },
-  fmt:      { hex: '#5CC8D8', r: 92,  g: 200, b: 216, background: 'rgba(92,200,216,.1)'  },
-  tone:     { hex: '#E077B0', r: 224, g: 119, b: 176, background: 'rgba(224,119,176,.1)' },
-  style:    { hex: '#B88BF5', r: 184, g: 139, b: 245, background: 'rgba(184,139,245,.12)' },
-  cnstr:    { hex: '#FB923C', r: 251, g: 146, b: 60,  background: 'rgba(251,146,60,.1)'  },
-  audience: { hex: '#7ED95A', r: 126, g: 217, b: 90,  background: 'rgba(126,217,90,.1)'  },
+  role:     { hex: '#8D83E6', r: 141, g: 131, b: 230, background: 'rgba(141,131,230,.12)' },
+  instr:    { hex: '#5C93D6', r: 92,  g: 147, b: 214, background: 'rgba(92,147,214,.12)'  },
+  fmt:      { hex: '#4FA8B8', r: 79,  g: 168, b: 184, background: 'rgba(79,168,184,.12)'  },
+  ctx:      { hex: '#41AD8C', r: 65,  g: 173, b: 140, background: 'rgba(65,173,140,.12)'  },
+  audience: { hex: '#5CB06B', r: 92,  g: 176, b: 107, background: 'rgba(92,176,107,.12)'  },
+  task:     { hex: '#D9A83F', r: 217, g: 168, b: 63,  background: 'rgba(217,168,63,.12)'  },
+  cnstr:    { hex: '#D97B3F', r: 217, g: 123, b: 63,  background: 'rgba(217,123,63,.12)'  },
+  ex:       { hex: '#D9685A', r: 217, g: 104, b: 90,  background: 'rgba(217,104,90,.12)'  },
+  tone:     { hex: '#C97FAC', r: 201, g: 127, b: 172, background: 'rgba(201,127,172,.12)' },
+  style:    { hex: '#A279C9', r: 162, g: 121, b: 201, background: 'rgba(162,121,201,.12)' },
 };
 
 export const SECTION_DEFINITIONS = {

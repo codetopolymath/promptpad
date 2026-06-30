@@ -5,53 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Notes — PromptPad</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:     #090C14;
-      --card:   rgba(255,255,255,.045);
-      --border: rgba(255,255,255,.07);
-      --text:   #ECF0FF;
-      --sub:    #8C9BBE;
-      --dim:    #3A4D6E;
-      --acc:    #A78BFA;
+      --bg:     #0d1117;
+      --card:   rgba(244,247,252,.045);
+      --border: rgba(244,247,252,.08);
+      --text:   #f4f7fc;
+      --sub:    #9aa4b8;
+      --dim:    #4a5366;
+      --acc:    #f4a440;
       --hdr-h:  52px;
     }
 
     [data-theme="light"] {
-      --bg:     #C2D0FF;
-      --card:   rgba(255,255,255,.38);
-      --border: rgba(255,255,255,.68);
-      --text:   #14203A;
-      --sub:    #48587A;
-      --dim:    #8695B8;
+      --bg:     #faf6ee;
+      --card:   rgba(28,23,17,.04);
+      --border: rgba(28,23,17,.1);
+      --text:   #1c1711;
+      --sub:    #5c5448;
+      --dim:    #9a8f7d;
+      --acc:    #c97c1d;
     }
 
     html, body { height: 100%; }
 
     body {
       display: flex; flex-direction: column;
-      font-family: 'Inter', system-ui, sans-serif;
+      font-family: 'Public Sans', system-ui, sans-serif;
       font-size: 15px; color: var(--text);
       background-color: var(--bg);
-      background-image:
-        radial-gradient(ellipse at 18% 18%, rgba(124,58,237,.15) 0%, transparent 48%),
-        radial-gradient(ellipse at 82% 82%, rgba(52,211,153,.08) 0%, transparent 45%),
-        radial-gradient(ellipse at 55% 45%, rgba(96,165,250,.05) 0%, transparent 55%);
-      background-attachment: fixed;
       -webkit-font-smoothing: antialiased;
-    }
-
-    [data-theme="light"] body {
-      background-color: #C2D0FF;
-      background-image:
-        radial-gradient(ellipse at 12% 14%, rgba(147,100,250,.62) 0%, transparent 48%),
-        radial-gradient(ellipse at 86% 82%, rgba(32,200,140,.45) 0%, transparent 44%),
-        radial-gradient(ellipse at 56% 50%, rgba(80,148,250,.3) 0%, transparent 52%),
-        radial-gradient(ellipse at 82% 12%, rgba(247,180,72,.28) 0%, transparent 36%);
     }
 
     /* ── HEADER ── */
@@ -59,13 +47,12 @@
       height: var(--hdr-h); flex-shrink: 0;
       display: flex; align-items: center; gap: 12px;
       padding: 0 20px;
-      background: rgba(9,12,20,.82);
-      backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+      background: rgba(13,17,23,.85);
+      backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
       border-bottom: 1px solid var(--border);
     }
     [data-theme="light"] .hdr {
-      background: rgba(185,205,255,.68);
-      border-bottom-color: rgba(255,255,255,.7);
+      background: rgba(250,246,238,.85);
     }
 
     .back-btn {
@@ -75,18 +62,18 @@
       border: 1px solid var(--border); background: var(--card);
       transition: all .15s; white-space: nowrap; flex-shrink: 0;
     }
-    .back-btn:hover { color: var(--acc); border-color: rgba(167,139,250,.4); background: rgba(167,139,250,.08); }
+    .back-btn:hover { color: var(--acc); border-color: rgba(244,164,64,.4); background: rgba(244,164,64,.08); }
     .back-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
 
     .hdr-title {
       font-family: 'Space Grotesk', sans-serif;
-      font-weight: 700; font-size: 15px; color: var(--text);
+      font-weight: 600; font-size: 15px; color: var(--text);
     }
 
     .sp { flex: 1; }
 
     .hdr-meta {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'IBM Plex Mono', monospace;
       font-size: 11px; color: var(--dim); white-space: nowrap;
     }
 
@@ -101,7 +88,7 @@
       display: flex; align-items: center; justify-content: center;
       transition: all .15s; flex-shrink: 0;
     }
-    .theme-btn:hover { color: var(--acc); border-color: rgba(167,139,250,.4); }
+    .theme-btn:hover { color: var(--acc); border-color: rgba(244,164,64,.4); }
 
     /* ── SCROLL AREA ── */
     .scroll-area {
@@ -132,10 +119,10 @@
     }
 
     .block:hover:not(.editing) {
-      background: rgba(255,255,255,.03);
+      background: rgba(244,247,252,.03);
     }
     [data-theme="light"] .block:hover:not(.editing) {
-      background: rgba(255,255,255,.2);
+      background: rgba(28,23,17,.03);
     }
 
     /* Click cursor hint on hover */
@@ -181,17 +168,17 @@
     .block-render em { font-style: italic; color: var(--sub); }
     .block-render del { text-decoration: line-through; opacity: .6; }
     .block-render code {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13.5px; background: rgba(255,255,255,.08);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13.5px; background: rgba(244,247,252,.08);
       padding: 2px 6px; border-radius: 4px; color: var(--acc);
     }
-    [data-theme="light"] .block-render code { background: rgba(0,0,0,.08); }
+    [data-theme="light"] .block-render code { background: rgba(28,23,17,.06); }
     .block-render pre {
-      background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      background: rgba(244,247,252,.05); border: 1px solid var(--border);
       border-radius: 8px; padding: 14px 18px; overflow-x: auto;
       margin: 4px 0;
     }
-    [data-theme="light"] .block-render pre { background: rgba(255,255,255,.35); }
+    [data-theme="light"] .block-render pre { background: rgba(28,23,17,.03); }
     .block-render pre code { background: transparent; padding: 0; color: var(--text); font-size: 13px; }
     .block-render blockquote {
       border-left: 3px solid var(--acc); padding: 2px 0 2px 14px;
@@ -208,19 +195,19 @@
     .block-ta {
       display: none;
       width: 100%;
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(167,139,250,.25);
+      background: rgba(244,247,252,.04);
+      border: 1px solid rgba(244,164,64,.25);
       border-radius: 6px;
       outline: none; resize: none;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'IBM Plex Mono', monospace;
       font-size: 14px; line-height: 1.85;
       color: var(--text); caret-color: var(--acc);
       padding: 8px 10px;
       min-height: 36px;
     }
     [data-theme="light"] .block-ta {
-      background: rgba(255,255,255,.45);
-      border-color: rgba(167,139,250,.35);
+      background: rgba(28,23,17,.025);
+      border-color: rgba(201,124,29,.3);
       color: var(--text);
     }
     .block-ta::placeholder { color: var(--dim); font-style: italic; }
