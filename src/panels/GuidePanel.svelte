@@ -65,7 +65,11 @@
 
 <!-- Framework chooser -->
 <div class="guide-section-title">Choose a Framework</div>
-<div class="guide-section-description">Click any card to switch. All written content is preserved when you switch.</div>
+<div class="guide-section-description">
+  Click any card to switch. All written content is preserved when you switch.
+  Not sure which one? <strong style="color:var(--color-accent)">RTF</strong> is the leanest place to start —
+  three fields, done in a minute.
+</div>
 
 <div class="framework-grid">
   {#each Object.entries(FRAMEWORKS) as [frameworkKey, framework]}
@@ -74,6 +78,9 @@
       class:is-active={$appStore.activeFramework === frameworkKey}
       on:click={() => { appStore.setActiveFramework(frameworkKey); appStore.setMode('write'); }}
     >
+      {#if frameworkKey === 'rtf'}
+        <span class="framework-card-badge">Recommended</span>
+      {/if}
       <div class="framework-card-icon">{framework.icon}</div>
       <div class="framework-card-name">{framework.name}</div>
       <div class="framework-card-count">{framework.sections.length} sections</div>

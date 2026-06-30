@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Notes — PromptPad</title>
+  <meta name="theme-color" content="#0d1117">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -72,14 +72,21 @@
 
     .sp { flex: 1; }
 
+    .hdr-hint {
+      font-size: 11px; color: var(--dim); white-space: nowrap;
+    }
+
     .hdr-meta {
       font-family: 'IBM Plex Mono', monospace;
       font-size: 11px; color: var(--dim); white-space: nowrap;
     }
 
-    .hdr-hint {
-      font-size: 11px; color: var(--dim); white-space: nowrap;
+    .save-indicator {
+      font-size: 11px; font-family: 'IBM Plex Mono', monospace;
+      color: var(--acc); white-space: nowrap;
+      opacity: 0; transition: opacity .3s ease;
     }
+    .save-indicator.is-visible { opacity: 1; }
 
     .theme-btn {
       width: 32px; height: 32px; border-radius: 7px;
@@ -104,129 +111,87 @@
       outline: none;
     }
 
-    /* ── BLOCK: the core unit ── */
-    /*
-      Each block is a paragraph/heading/code-block etc.
-      In rendered mode: shows formatted HTML.
-      In edit mode: shows raw markdown text in a textarea.
-    */
-
+    /* ── BLOCK: one markdown unit (paragraph / heading / quote / list item / code).
+       There is no separate edit mode — the block is always a single
+       contenteditable element. Its underlying textContent is always the
+       exact raw markdown (markers are real text, just visually hidden via
+       CSS while the block isn't focused), so formatting renders live as
+       you type and nothing is ever lost or rewritten behind your back. ── */
     .block {
       position: relative;
       border-radius: 6px;
-      margin-bottom: 2px;
-      transition: background .1s;
-    }
-
-    .block:hover:not(.editing) {
-      background: rgba(244,247,252,.03);
-    }
-    [data-theme="light"] .block:hover:not(.editing) {
-      background: rgba(28,23,17,.03);
-    }
-
-    /* Click cursor hint on hover */
-    .block:not(.editing):hover::before {
-      content: '';
-      position: absolute; left: -20px; top: 50%; transform: translateY(-50%);
-      width: 3px; height: 60%; min-height: 16px;
-      background: var(--acc); border-radius: 2px; opacity: .35;
-    }
-
-    /* ── RENDERED OUTPUT ── */
-    .block-render {
       padding: 5px 10px;
-      cursor: text;
+      margin-bottom: 2px;
       line-height: 1.82;
+      cursor: text;
+      outline: none;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      transition: background .12s ease;
     }
+    .block:hover { background: rgba(244,247,252,.03); }
+    [data-theme="light"] .block:hover { background: rgba(28,23,17,.03); }
+    .block.is-focused { background: rgba(244,164,64,.05); }
 
-    .block-render:empty::after {
+    .block:empty::before {
       content: attr(data-placeholder);
       color: var(--dim);
       font-style: italic;
       pointer-events: none;
     }
 
-    /* Rendered markdown typography */
-    .block-render h1 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 30px; font-weight: 800; letter-spacing: -.6px;
-      color: var(--text); line-height: 1.2; padding: 6px 0 4px;
-    }
-    .block-render h2 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 22px; font-weight: 700; letter-spacing: -.3px;
-      color: var(--text); line-height: 1.3; padding: 4px 0 3px;
-    }
-    .block-render h3 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 18px; font-weight: 600;
-      color: var(--text); line-height: 1.35; padding: 3px 0 2px;
-    }
-    .block-render p { color: var(--text); margin: 0; }
-    .block-render strong { color: var(--text); font-weight: 700; }
-    .block-render em { font-style: italic; color: var(--sub); }
-    .block-render del { text-decoration: line-through; opacity: .6; }
-    .block-render code {
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 13.5px; background: rgba(244,247,252,.08);
-      padding: 2px 6px; border-radius: 4px; color: var(--acc);
-    }
-    [data-theme="light"] .block-render code { background: rgba(28,23,17,.06); }
-    .block-render pre {
-      background: rgba(244,247,252,.05); border: 1px solid var(--border);
-      border-radius: 8px; padding: 14px 18px; overflow-x: auto;
-      margin: 4px 0;
-    }
-    [data-theme="light"] .block-render pre { background: rgba(28,23,17,.03); }
-    .block-render pre code { background: transparent; padding: 0; color: var(--text); font-size: 13px; }
-    .block-render blockquote {
-      border-left: 3px solid var(--acc); padding: 2px 0 2px 14px;
-      color: var(--sub); margin: 0;
-    }
-    .block-render ul, .block-render ol { padding-left: 22px; }
-    .block-render li { line-height: 1.75; color: var(--text); margin-bottom: 2px; }
-    .block-render hr { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
-    .block-render a { color: var(--acc); text-decoration: underline; }
+    /* Markdown syntax markers — real characters, hidden until you're
+       editing that exact block, then shown dim so you can see/edit them. */
+    .md-mark { color: var(--dim); }
+    .block:not(.is-focused) .md-mark { display: none; }
+    .block.is-focused .md-mark { opacity: .55; }
+    /* Ordered-list numbers stay visible always — they carry information,
+       not just syntax, so hiding them like other markers would be confusing. */
+    .block:not(.is-focused) .md-mark.md-mark-visible { display: inline; }
 
-    /* ── RAW EDIT TEXTAREA ── */
-    .block.editing .block-render { display: none; }
-
-    .block-ta {
-      display: none;
-      width: 100%;
-      background: rgba(244,247,252,.04);
-      border: 1px solid rgba(244,164,64,.25);
-      border-radius: 6px;
-      outline: none; resize: none;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 14px; line-height: 1.85;
-      color: var(--text); caret-color: var(--acc);
-      padding: 8px 10px;
-      min-height: 36px;
+    /* Block-level typography */
+    .md-h1 { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -.5px; padding-top: 10px; padding-bottom: 2px; }
+    .md-h2 { font-family: 'Space Grotesk', sans-serif; font-size: 21px; font-weight: 600; letter-spacing: -.3px; padding-top: 8px; padding-bottom: 2px; }
+    .md-h3 { font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600; padding-top: 6px; padding-bottom: 1px; }
+    .md-quote { border-left: 3px solid var(--acc); padding-left: 14px; color: var(--sub); font-style: italic; }
+    .md-li-ul, .md-li-ol { padding-left: 24px; }
+    .md-li-ul::before {
+      content: '•'; position: absolute; left: 9px; color: var(--acc);
+      opacity: 0; transition: opacity .12s ease;
     }
-    [data-theme="light"] .block-ta {
-      background: rgba(28,23,17,.025);
-      border-color: rgba(201,124,29,.3);
-      color: var(--text);
+    .md-li-ul:not(.is-focused)::before { opacity: .85; }
+    .md-code {
+      font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+      background: rgba(244,247,252,.04); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 14px; margin: 2px 0;
     }
-    .block-ta::placeholder { color: var(--dim); font-style: italic; }
-    .block.editing .block-ta { display: block; }
+    [data-theme="light"] .md-code { background: rgba(28,23,17,.025); }
+    .md-code code { color: var(--text); }
 
-    /* ── NEW BLOCK BUTTON ── */
-    .add-block {
+    /* Inline styles */
+    .block strong { font-weight: 700; }
+    .block em { font-style: italic; color: var(--sub); }
+    .block del { opacity: .55; text-decoration: line-through; }
+    .md-inline-code {
+      font-family: 'IBM Plex Mono', monospace; font-size: .92em;
+      background: rgba(244,247,252,.08); padding: 1px 5px; border-radius: 4px;
+      color: var(--acc);
+    }
+    [data-theme="light"] .md-inline-code { background: rgba(28,23,17,.06); }
+    .md-link { color: var(--acc); text-decoration: underline; }
+
+    /* ── ADD BLOCK ── always-visible affordance, not hover-discovered */
+    .add-block-row {
       display: flex; align-items: center; gap: 8px;
       padding: 10px 10px;
       color: var(--dim); font-size: 13px;
       cursor: text; border-radius: 6px;
-      transition: color .15s;
+      transition: color .15s ease, background .15s ease;
       margin-top: 4px;
     }
-    .add-block:hover { color: var(--sub); }
-    .add-block::before {
-      content: '+';
-      font-size: 16px; line-height: 1;
-    }
+    .add-block-row:hover { color: var(--sub); background: rgba(244,247,252,.03); }
+    [data-theme="light"] .add-block-row:hover { background: rgba(28,23,17,.03); }
+    .add-block-row svg { width: 13px; height: 13px; flex-shrink: 0; }
   </style>
 </head>
 <body>
@@ -241,9 +206,10 @@
     <span style="color:var(--border);font-size:14px">|</span>
     <span class="hdr-title">Notes</span>
     <div class="sp"></div>
-    <span class="hdr-hint" id="hdr-hint">Click to edit · Enter for new block</span>
+    <span class="hdr-hint">Just start typing — formatting appears live · Enter for a new block</span>
     <span style="color:var(--border);font-size:14px;margin:0 4px">·</span>
     <span class="hdr-meta" id="note-meta">0 words</span>
+    <span class="save-indicator" id="save-indicator">saved</span>
     <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme"></button>
   </header>
 
@@ -270,170 +236,274 @@
     }
     function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'light' : 'dark'); }
 
-    // ── Meta ──
-    function updateMeta() {
-      const all = getAllRaw();
-      const words = all.trim() ? all.trim().split(/\s+/).length : 0;
-      document.getElementById('note-meta').textContent =
-        words.toLocaleString() + ' word' + (words !== 1 ? 's' : '');
+    // ── Markdown: escape, then wrap markers/content in spans.
+    // Markers are kept as real text inside .md-mark spans (hidden via CSS,
+    // not removed from the DOM) so block.textContent always equals the
+    // original raw markdown — formatting is purely a view, never a rewrite. ──
+    // Only & and < need escaping in text-node position — a bare '>' renders
+    // fine and leaving it alone keeps blockquote ('> ') marker detection
+    // working against the same (escaped) string used for HTML output.
+    function escapeHtml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
     }
 
-    // ── Block creation ──
-    function createBlock(raw) {
-      const wrap = document.createElement('div');
-      wrap.className = 'block';
+    function renderInline(text) {
+      const codeTokens = [];
+      text = text.replace(/`([^`\n]+)`/g, (m, code) => {
+        codeTokens.push(`<span class="md-mark">\`</span><code class="md-inline-code">${code}</code><span class="md-mark">\`</span>`);
+        return `${codeTokens.length - 1}`;
+      });
 
-      const render = document.createElement('div');
-      render.className = 'block-render';
-      if (!raw.trim()) render.setAttribute('data-placeholder', 'Empty block — click to write');
+      // `url` here is already HTML-escaped (renderInline only ever runs on
+      // text that went through escapeHtml once at the top of renderLive) —
+      // only quotes need handling for the attribute, not a second escapeHtml pass.
+      text = text.replace(/\[([^\]\n]+)\]\(([^()\s]+)\)/g, (m, label, url) =>
+        `<span class="md-mark">[</span><a class="md-link" href="${url.replace(/"/g, '&quot;')}" target="_blank" rel="noopener noreferrer">${label}</a><span class="md-mark">](${url})</span>`
+      );
 
-      const ta = document.createElement('textarea');
-      ta.className = 'block-ta';
-      ta.placeholder = '# Heading   **bold**   *italic*   `code`   > quote   - list';
-      ta.rows = 1;
-      ta.value = raw;
+      text = text.replace(/(\*\*|__)([^\n]+?)\1/g, (m, mk, inner) =>
+        `<span class="md-mark">${mk}</span><strong>${inner}</strong><span class="md-mark">${mk}</span>`
+      );
 
-      wrap.appendChild(render);
-      wrap.appendChild(ta);
+      text = text.replace(/(^|[^*_\w])([*_])([^\s*_][^\n]*?)\2(?![*_\w])/g, (m, pre, mk, inner) =>
+        `${pre}<span class="md-mark">${mk}</span><em>${inner}</em><span class="md-mark">${mk}</span>`
+      );
 
-      renderBlock(wrap, raw);
-      wireBlock(wrap);
-      return wrap;
+      text = text.replace(/~~([^\n]+?)~~/g, (m, inner) =>
+        `<span class="md-mark">~~</span><del>${inner}</del><span class="md-mark">~~</span>`
+      );
+
+      return text.replace(/(\d+)/g, (m, idx) => codeTokens[Number(idx)]);
     }
 
-    function renderBlock(wrap, raw) {
-      const render = wrap.querySelector('.block-render');
-      const r = raw.trim();
-      if (!r) {
-        render.innerHTML = '';
-        render.setAttribute('data-placeholder', 'Empty block — click to write');
-      } else {
-        render.removeAttribute('data-placeholder');
-        // marked returns wrapped <p> — keep it minimal
-        render.innerHTML = marked.parse(r);
+    function renderLive(raw) {
+      const escaped = escapeHtml(raw);
+      const firstLineEnd = escaped.indexOf('\n');
+      const firstLine = firstLineEnd === -1 ? escaped : escaped.slice(0, firstLineEnd);
+
+      if (/^```/.test(firstLine)) {
+        const lines = escaped.split('\n');
+        let closerIdx = -1;
+        for (let i = lines.length - 1; i >= 1; i--) {
+          if (/^```\s*$/.test(lines[i])) { closerIdx = i; break; }
+        }
+        const body = (closerIdx === -1 ? lines.slice(1) : lines.slice(1, closerIdx)).join('\n');
+        const closer = closerIdx === -1 ? '' : lines[closerIdx];
+        const html =
+          `<span class="md-mark">${lines[0]}\n</span>` +
+          `<code>${body}</code>` +
+          (closer ? `<span class="md-mark">\n${closer}</span>` : '');
+        return { html, cls: 'md-code' };
       }
+
+      let m;
+      if ((m = firstLine.match(/^(#{1,3})[ \t]+/))) {
+        return {
+          html: `<span class="md-mark">${escaped.slice(0, m[0].length)}</span>${renderInline(escaped.slice(m[0].length))}`,
+          cls: 'md-h' + m[1].length,
+        };
+      }
+      if ((m = firstLine.match(/^>[ \t]+/))) {
+        return {
+          html: `<span class="md-mark">${escaped.slice(0, m[0].length)}</span>${renderInline(escaped.slice(m[0].length))}`,
+          cls: 'md-quote',
+        };
+      }
+      if ((m = firstLine.match(/^[-*+][ \t]+/))) {
+        return {
+          html: `<span class="md-mark">${escaped.slice(0, m[0].length)}</span>${renderInline(escaped.slice(m[0].length))}`,
+          cls: 'md-li-ul',
+        };
+      }
+      if ((m = firstLine.match(/^\d+\.[ \t]+/))) {
+        return {
+          html: `<span class="md-mark md-mark-visible">${escaped.slice(0, m[0].length)}</span>${renderInline(escaped.slice(m[0].length))}`,
+          cls: 'md-li-ol',
+        };
+      }
+
+      return { html: renderInline(escaped), cls: 'md-p' };
     }
 
-    function autoHeight(ta) {
-      ta.style.height = 'auto';
-      ta.style.height = Math.max(36, ta.scrollHeight) + 'px';
+    // ── Caret handling — re-render rebuilds the block's DOM on every
+    // keystroke, so the caret has to be captured as a plain character
+    // offset beforehand and restored to the same offset afterward. ──
+    function getCaretOffset(block) {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return 0;
+      const range = sel.getRangeAt(0);
+      if (!block.contains(range.startContainer)) return 0;
+      const pre = range.cloneRange();
+      pre.selectNodeContents(block);
+      pre.setEnd(range.startContainer, range.startOffset);
+      return pre.toString().length;
     }
 
-    // ── Wire events for a block ──
-    function wireBlock(wrap) {
-      const render = wrap.querySelector('.block-render');
-      const ta     = wrap.querySelector('.block-ta');
+    function setCaretOffset(block, offset) {
+      const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, null);
+      let node, count = 0;
+      while ((node = walker.nextNode())) {
+        const len = node.textContent.length;
+        if (count + len >= offset) {
+          const range = document.createRange();
+          range.setStart(node, Math.max(0, offset - count));
+          range.collapse(true);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+          return;
+        }
+        count += len;
+      }
+      const range = document.createRange();
+      range.selectNodeContents(block);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
 
-      // Click rendered → enter edit mode
-      render.addEventListener('click', () => enterEdit(wrap));
+    function focusBlock(block, offset) {
+      block.focus();
+      setCaretOffset(block, offset);
+    }
 
-      // Textarea: auto-height
-      ta.addEventListener('input', () => {
-        autoHeight(ta);
+    // ── Block lifecycle ──
+    function renderBlock(block, raw) {
+      const { html, cls } = renderLive(raw);
+      block.innerHTML = html;
+      block.classList.remove('md-h1', 'md-h2', 'md-h3', 'md-quote', 'md-li-ul', 'md-li-ol', 'md-code', 'md-p');
+      block.classList.add(cls);
+    }
+
+    function createBlock(raw) {
+      const block = document.createElement('div');
+      block.className = 'block';
+      block.contentEditable = 'true';
+      block.setAttribute('role', 'textbox');
+      block.setAttribute('aria-multiline', 'true');
+      block.dataset.placeholder = 'Write something — # heading, **bold**, *italic*, `code`, > quote, - list';
+      renderBlock(block, raw);
+      wireBlock(block);
+      return block;
+    }
+
+    function wireBlock(block) {
+      let isComposing = false;
+      block.addEventListener('compositionstart', () => { isComposing = true; });
+      block.addEventListener('compositionend', () => {
+        isComposing = false;
+        block.dispatchEvent(new Event('input'));
+      });
+
+      block.addEventListener('input', () => {
+        if (isComposing) return;
+        const offset = getCaretOffset(block);
+        renderBlock(block, block.textContent);
+        setCaretOffset(block, offset);
         saveAll();
         updateMeta();
       });
 
-      // Enter → commit + new block below
-      ta.addEventListener('keydown', e => {
+      block.addEventListener('focus', () => block.classList.add('is-focused'));
+      block.addEventListener('blur', () => block.classList.remove('is-focused'));
+
+      block.addEventListener('keydown', e => {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
-          commitBlock(wrap);
-          const nb = createBlock('');
-          wrap.after(nb);
-          enterEdit(nb);
+          const offset = getCaretOffset(block);
+          const raw = block.textContent;
+          renderBlock(block, raw.slice(0, offset));
+          const next = createBlock(raw.slice(offset));
+          block.after(next);
+          focusBlock(next, 0);
+          saveAll();
+          updateMeta();
           return;
         }
 
-        // Backspace on empty block → remove + focus previous
-        if (e.key === 'Backspace' && ta.value === '') {
+        if (e.key === 'Enter' && e.shiftKey) {
           e.preventDefault();
-          const prev = wrap.previousElementSibling;
-          if (prev && prev.classList.contains('block')) {
-            wrap.remove();
-            saveAll();
-            updateMeta();
-            enterEdit(prev, true); // focus end of prev
+          const offset = getCaretOffset(block);
+          const raw = block.textContent;
+          renderBlock(block, raw.slice(0, offset) + '\n' + raw.slice(offset));
+          setCaretOffset(block, offset + 1);
+          saveAll();
+          updateMeta();
+          return;
+        }
+
+        if (e.key === 'Backspace') {
+          const sel = window.getSelection();
+          const collapsed = sel.rangeCount && sel.getRangeAt(0).collapsed;
+          if (collapsed && getCaretOffset(block) === 0) {
+            const prev = block.previousElementSibling;
+            if (prev && prev.classList.contains('block')) {
+              e.preventDefault();
+              const mergeOffset = prev.textContent.length;
+              const merged = prev.textContent + block.textContent;
+              block.remove();
+              renderBlock(prev, merged);
+              focusBlock(prev, mergeOffset);
+              saveAll();
+              updateMeta();
+            }
           }
           return;
         }
 
-        // Escape → commit without new block
-        if (e.key === 'Escape') {
-          commitBlock(wrap);
-          ta.blur();
+        if (e.key === 'Escape') { block.blur(); return; }
+
+        if (e.key === 'ArrowUp') {
+          const offset = getCaretOffset(block);
+          if (!block.textContent.slice(0, offset).includes('\n')) {
+            const prev = block.previousElementSibling;
+            if (prev && prev.classList.contains('block')) {
+              e.preventDefault();
+              focusBlock(prev, prev.textContent.length);
+            }
+          }
+          return;
         }
 
-        // Arrow up to prev block
-        if (e.key === 'ArrowUp' && ta.selectionStart === 0) {
-          const prev = wrap.previousElementSibling;
-          if (prev && prev.classList.contains('block')) {
-            commitBlock(wrap);
-            enterEdit(prev, true);
+        if (e.key === 'ArrowDown') {
+          const offset = getCaretOffset(block);
+          if (!block.textContent.slice(offset).includes('\n')) {
+            const next = block.nextElementSibling;
+            if (next && next.classList.contains('block')) {
+              e.preventDefault();
+              focusBlock(next, Math.min(offset, next.textContent.length));
+            }
           }
         }
-
-        // Arrow down to next block
-        if (e.key === 'ArrowDown' && ta.selectionEnd === ta.value.length) {
-          const next = wrap.nextElementSibling;
-          if (next && next.classList.contains('block')) {
-            commitBlock(wrap);
-            enterEdit(next, false);
-          }
-        }
-      });
-
-      // Blur → commit
-      ta.addEventListener('blur', () => {
-        // Small delay so click on another block fires first
-        setTimeout(() => commitBlock(wrap), 80);
       });
     }
 
-    function enterEdit(wrap, focusEnd) {
-      // Commit any other open block first
-      editor.querySelectorAll('.block.editing').forEach(b => {
-        if (b !== wrap) commitBlock(b);
-      });
-
-      wrap.classList.add('editing');
-      const ta = wrap.querySelector('.block-ta');
-      autoHeight(ta);
-      ta.focus();
-      if (focusEnd !== undefined) {
-        const p = focusEnd ? ta.value.length : 0;
-        ta.setSelectionRange(p, p);
-      }
-    }
-
-    function commitBlock(wrap) {
-      if (!wrap.classList.contains('editing')) return;
-      const ta  = wrap.querySelector('.block-ta');
-      const raw = ta.value;
-      wrap.classList.remove('editing');
-      renderBlock(wrap, raw);
-      saveAll();
-    }
-
-    // ── Persist ──
+    // ── Meta + persistence ──
     function getAllRaw() {
-      return Array.from(editor.querySelectorAll('.block'))
-        .map(b => {
-          if (b.classList.contains('editing')) return b.querySelector('.block-ta').value;
-          return b.querySelector('.block-ta').value;
-        })
-        .join('\n\n');
+      return Array.from(editor.querySelectorAll('.block')).map(b => b.textContent).join('\n\n');
     }
 
+    function updateMeta() {
+      const all = getAllRaw().trim();
+      const words = all ? all.split(/\s+/).length : 0;
+      document.getElementById('note-meta').textContent = words.toLocaleString() + ' word' + (words !== 1 ? 's' : '');
+    }
+
+    let saveFlashTimer;
     function saveAll() {
       localStorage.setItem(STORAGE_KEY, getAllRaw());
+      const indicator = document.getElementById('save-indicator');
+      indicator.classList.add('is-visible');
+      clearTimeout(saveFlashTimer);
+      saveFlashTimer = setTimeout(() => indicator.classList.remove('is-visible'), 900);
     }
 
-    // ── Split stored content into blocks ──
+    // ── Split stored content into blocks on load ──
     function splitBlocks(markdown) {
       if (!markdown) return [''];
       const blocks = [];
-      const lines  = markdown.split('\n');
+      const lines = markdown.split('\n');
       let cur = '', inFence = false;
 
       for (const line of lines) {
@@ -450,30 +520,25 @@
       return blocks;
     }
 
-    // ── Click on empty area below blocks → add new block ──
-    document.querySelector('.scroll-area').addEventListener('click', e => {
-      if (e.target.closest('.block') || e.target.closest('.add-block')) return;
-      if (e.clientY > editor.getBoundingClientRect().bottom - 20) {
-        const last = editor.lastElementChild;
-        if (last && last.classList.contains('block')) {
-          const lastTa = last.querySelector('.block-ta');
-          if (lastTa && lastTa.value.trim() === '') {
-            enterEdit(last);
-            return;
-          }
-        }
-        const nb = createBlock('');
-        editor.appendChild(nb);
-        enterEdit(nb);
-      }
-    });
-
     // ── Init ──
     applyTheme(getTheme());
 
-    const saved   = localStorage.getItem(STORAGE_KEY) || '';
-    const blocks  = splitBlocks(saved);
-    blocks.forEach(raw => editor.appendChild(createBlock(raw)));
+    const saved = localStorage.getItem(STORAGE_KEY) || '';
+    splitBlocks(saved).forEach(raw => editor.appendChild(createBlock(raw)));
+
+    const addRow = document.createElement('div');
+    addRow.className = 'add-block-row';
+    addRow.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add a block';
+    addRow.addEventListener('click', () => {
+      const blocks = editor.querySelectorAll('.block');
+      const last = blocks[blocks.length - 1];
+      if (last && last.textContent.trim() === '') { focusBlock(last, 0); return; }
+      const next = createBlock('');
+      editor.insertBefore(next, addRow);
+      focusBlock(next, 0);
+    });
+    editor.appendChild(addRow);
+
     updateMeta();
   </script>
 </body>

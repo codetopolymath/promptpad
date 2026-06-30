@@ -100,8 +100,11 @@
     PromptPad
   </a>
 
-  <!-- Framework selector -->
+  <!-- Framework selector — the first real decision in the flow, so it
+       gets a distinct landmark (icon swatch) rather than blending in as
+       a plain dropdown next to everything else. -->
   <div class="header-framework-wrap">
+    <span class="header-framework-icon">{(FRAMEWORKS[$appStore.activeFramework] ?? FRAMEWORKS.custom).icon}</span>
     <span class="header-framework-label">Framework</span>
     <select
       class="header-framework-select"

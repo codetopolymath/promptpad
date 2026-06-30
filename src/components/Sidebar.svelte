@@ -1,9 +1,24 @@
 <script>
+  import { onMount } from 'svelte';
   import { appStore, currentSections, completionStats, activeFrameworkDefinition, showToast } from '../store.js';
   import { SECTION_COLORS } from '../data/sections.js';
   import { TECHNIQUES } from '../data/techniques.js';
 
+  const SIDEBAR_PIN_KEY = 'pp-sidebar-expanded';
+
+  // Click-to-pin, not hover-to-expand — hover sidebars trigger and dismiss
+  // accidentally (e.g. clicking an Inject pill near the edge collapses the
+  // rail mid-click) and don't work for touch or keyboard users at all.
   let isExpanded = false;
+
+  onMount(() => {
+    isExpanded = localStorage.getItem(SIDEBAR_PIN_KEY) === '1';
+  });
+
+  function toggleExpanded() {
+    isExpanded = !isExpanded;
+    localStorage.setItem(SIDEBAR_PIN_KEY, isExpanded ? '1' : '0');
+  }
 
   function scrollToSection(sectionIndex) {
     const cardElement = document.getElementById(`card-${sectionIndex}`);
@@ -41,9 +56,24 @@
   class="app-sidebar"
   class:is-expanded={isExpanded}
   class:is-mobile-open={$appStore.mobileSidebarOpen}
-  on:mouseenter={() => isExpanded = true}
-  on:mouseleave={() => isExpanded = false}
 >
+
+  <!-- Pin/unpin toggle — always visible, in both rail and expanded states -->
+  <button
+    class="sidebar-pin-button"
+    on:click={toggleExpanded}
+    title={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+    aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+    aria-pressed={isExpanded}
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+      {#if isExpanded}
+        <polyline points="15 18 9 12 15 6"/>
+      {:else}
+        <polyline points="9 18 15 12 9 6"/>
+      {/if}
+    </svg>
+  </button>
 
   <!-- Expanded header: framework name + progress (not in DOM when collapsed) -->
   {#if isExpanded || $appStore.mobileSidebarOpen}
@@ -69,6 +99,7 @@
       class:is-disabled={!isEnabled}
       class:is-filled={isFilled}
       on:click={() => scrollToSection(section.index)}
+      title={isExpanded || $appStore.mobileSidebarOpen ? '' : `${section.fullTitle}${isFilled ? ' — filled' : ''}`}
     >
       <span class="sidebar-nav-dot" style="background:{sectionColor.hex}"></span>
       {#if isExpanded || $appStore.mobileSidebarOpen}
